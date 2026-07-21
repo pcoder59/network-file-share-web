@@ -51,6 +51,18 @@ app.get('/download/:filename', (req, res) => {
   res.download(filepath);
 });
 
+app.delete('/delete/:filename', (req, res) => {
+    const filename = req.params.filename;
+    const filepath = path.join(__dirname, 'uploads', filename);
+    
+    fs.unlink(filepath, (err) => {
+        if (err) {
+            return res.status(500).json({ error: 'Delete failed' });
+        }
+        res.json({ success: true });
+    });
+});
+
 // Get local IP address
 function getLocalIP() {
   const interfaces = os.networkInterfaces();
@@ -64,7 +76,7 @@ function getLocalIP() {
   return 'localhost';
 }
 
-const PORT = 8080;
+const PORT = 2020;
 const HOST = '0.0.0.0'; // Bind to all network interfaces
 
 app.listen(PORT, HOST, () => {
