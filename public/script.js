@@ -8,62 +8,78 @@ const progressFill = document.getElementById('progressFill');
 
 // Show selected file name
 fileInput.addEventListener('change', (e) => {
-    const file = e.target.files[0];
-    if (file) {
-    fileName.textContent = `📄 Selected: ${file.name}`;
-    fileName.style.display = 'block';
-    uploadBtn.disabled = false;
+    fileName.textContent = '';
+    const files = e.target.files;
+    if (files) {
+        for (var i = 0; i < files.length; i++) {
+            const file = files[i];
+            if (file) {
+                fileName.textContent += `📄 Selected: ${file.name}`;
+                fileName.style.display = 'block';
+                uploadBtn.disabled = false;
+            }
+        }
     } else {
-    fileName.style.display = 'none';
-    uploadBtn.disabled = true;
+        fileName.style.display = 'none';
+        uploadBtn.disabled = true;
     }
 });
 
 // Upload file
 uploadBtn.addEventListener('click', async () => {
-    const file = fileInput.files[0];
-    if (!file) return;
+    const files = fileInput.files;
+    if (!files) return;
+    for (var i = 0; i < files.length; i++) {
+        const file = fileInput.files[i];
+        if (!file) return;
 
-    const formData = new FormData();
-    formData.append('file', file);
+        const formData = new FormData();
+        formData.append('file', file);
 
-    uploadBtn.disabled = true;
-    progress.style.display = 'block';
-    message.className = 'message';
-
-    try {
-    const xhr = new XMLHttpRequest();
-    xhr.upload.addEventListener('progress', (e) => {
-        const percent = (e.loaded / e.total) * 100;
-        progressFill.style.width = percent + '%';
-    });
-
-    xhr.addEventListener('load', () => {
-        if (xhr.status === 200) {
-        showMessage('✓ File uploaded successfully!', 'success');
-        fileInput.value = '';
-        fileName.style.display = 'none';
         uploadBtn.disabled = true;
-        progressFill.style.width = '0%';
-        setTimeout(() => {
+        progress.style.display = 'block';
+        message.className = 'message';
+
+        try {
+            const xhr = new XMLHttpRequest();
+            xhr.upload.addEventListener('progress', (e) => {
+                const percent = (e.loaded / e.total) * 100;
+                progressFill.style.width = percent + '%';
+            });
+
+            xhr.addEventListener('load', () => {
+                if (xhr.status === 200) {
+                    var message = file.name + 'File uploaded successfully! ✓';
+                    showMessage(message, 'success');
+                    fileInput.value = '';
+                    fileName.style.display = 'none';
+                    uploadBtn.disabled = true;
+                    progressFill.style.width = '0%';
+                    setTimeout(() => {
+                        progress.style.display = 'none';
+                        loadFiles();
+                    }, 1000);
+                }
+            });
+
+            xhr.addEventListener('error', () => {
+                var message = file.name + 'Upload failed. Try again. ✗';
+                showMessage(message, 'error');
+                showMessage('✗ Upload failed. Try again.', 'error');
+                uploadBtn.disabled = false;
+                progress.style.display = 'none';
+            });
+
+            xhr.open('POST', '/upload');
+            xhr.send(formData);
+        } catch (err) {
+            showMessage(file.name + ' ✗ Error: ' + err.message, 'error');
+            if (i == files.length - 1) {
+                showMessage('File Transfer Completed! ✓')
+                uploadBtn.disabled = false;
+            }
             progress.style.display = 'none';
-            loadFiles();
-        }, 1000);
         }
-    });
-
-    xhr.addEventListener('error', () => {
-        showMessage('✗ Upload failed. Try again.', 'error');
-        uploadBtn.disabled = false;
-        progress.style.display = 'none';
-    });
-
-    xhr.open('POST', '/upload');
-    xhr.send(formData);
-    } catch (err) {
-    showMessage('✗ Error: ' + err.message, 'error');
-    uploadBtn.disabled = false;
-    progress.style.display = 'none';
     }
 });
 
