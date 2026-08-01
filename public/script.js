@@ -11,13 +11,14 @@ fileInput.addEventListener('change', (e) => {
     fileName.textContent = '';
     const files = e.target.files;
     if (files) {
-        for (var i = 0; i < files.length; i++) {
-            const file = files[i];
-            if (file) {
-                fileName.textContent += `📄 Selected: ${file.name}`;
-                fileName.style.display = 'block';
-                uploadBtn.disabled = false;
-            }
+        if (files.length == 1) {
+            fileName.textContent = `📄 Selected: ${file.name}`;
+            fileName.style.display = 'block';
+            uploadBtn.disabled = false;
+        } else {
+            fileName.textContent = `📄 Multiple Files Selected`;
+            fileName.style.display = 'block';
+            uploadBtn.disabled = false;
         }
     } else {
         fileName.style.display = 'none';
