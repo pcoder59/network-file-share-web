@@ -6,6 +6,10 @@ const message = document.getElementById('message');
 const progress = document.getElementById('progress');
 const progressFill = document.getElementById('progressFill');
 
+const filesPerPage = 5;
+let currentPage = 1;
+let allFiles = [];
+
 // Show selected file name
 fileInput.addEventListener('change', (e) => {
     fileName.textContent = '';
@@ -85,49 +89,86 @@ uploadBtn.addEventListener('click', async () => {
 });
 
 // Load and display files
-async function loadFiles() {
+async function loadFiles(page = 1) {
     try {
-    const response = await fetch('/files');
-    const files = await response.json();
+        const response = await fetch('/files');
+        const files = await response.json();
+        allFiles = files;
+        currentPage = page;
 
-    filesList.innerHTML = '';
-    if (files.length === 0) {
-        filesList.innerHTML = '<li class="empty-message">No files uploaded yet</li>';
-    } else {
-        files.forEach(file => {
-            const li = document.createElement('li');
-            li.className = 'file-item';
-            li.innerHTML = `
-                <a href="/download/${file}" download>${file}</a>
-                <button class="delete-btn">Delete</button>
-            `;
-            filesList.appendChild(li);
+        // Calculate pagination
+        const totalPages = Math.ceil(files.length / filesPerPage);
+        const startIndex = (page - 1) * filesPerPage;
+        const endIndex = startIndex + filesPerPage;
+        const paginatedFiles = files.slice(startIndex, endIndex);
 
-            const deleteBtn = li.querySelector('.delete-btn');
-            deleteBtn.addEventListener('click', async () => {
-                if (confirm(`Are you sure you want to delete "${file}"?`)) {
-                try {
-                    const deleteResponse = await fetch(`/delete/${file}`, {
-                    method: 'DELETE'
-                    });
-                    
-                    if (deleteResponse.ok) {
-                    showMessage(`✓ "${file}" deleted successfully!`, 'success');
-                    loadFiles(); // Reload the file list
-                    } else {
-                    showMessage('✗ Delete failed. Try again.', 'error');
+        // Display files
+        filesList.innerHTML = '';
+        if (files.length === 0) {
+            filesList.innerHTML = '<li class="empty-message">No files uploaded yet</li>';
+            document.getElementById('pagination').style.display = 'none';
+        } else {
+            paginatedFiles.forEach(file => {
+                const li = document.createElement('li');
+                li.className = 'file-item';
+                li.innerHTML = `
+                    <a href="/download/${file}" download>${file}</a>
+                    <button class="delete-btn">Delete</button>
+                `;
+                filesList.appendChild(li);
+
+                const deleteBtn = li.querySelector('.delete-btn');
+                deleteBtn.addEventListener('click', async () => {
+                    if (confirm(`Are you sure you want to delete "${file}"?`)) {
+                        try {
+                            const deleteResponse = await fetch(`/delete/${file}`, {
+                                method: 'DELETE'
+                            });
+                            
+                            if (deleteResponse.ok) {
+                                showMessage(`✓ "${file}" deleted successfully!`, 'success');
+                                loadFiles(1); // Reset to page 1
+                            } else {
+                                showMessage('✗ Delete failed. Try again.', 'error');
+                            }
+                        } catch (err) {
+                            showMessage('✗ Error deleting file: ' + err.message, 'error');
+                        }
                     }
-                } catch (err) {
-                    showMessage('✗ Error deleting file: ' + err.message, 'error');
-                }
-                }
+                });
             });
-        });
-    }
+
+            // Show pagination controls if more than one page
+            const paginationDiv = document.getElementById('pagination');
+            if (totalPages > 1) {
+                paginationDiv.style.display = 'flex';
+                document.getElementById('pageInfo').textContent = 
+                    `Page ${page} of ${totalPages}`;
+                
+                // Update button states
+                document.getElementById('prevBtn').disabled = page === 1;
+                document.getElementById('nextBtn').disabled = page === totalPages;
+            } else {
+                paginationDiv.style.display = 'none';
+            }
+        }
     } catch (err) {
-    console.error('Error loading files:', err);
+        console.error('Error loading files:', err);
     }
 }
+
+document.getElementById('prevBtn').addEventListener('click', () => {
+    if (currentPage > 1) {
+        loadFiles(currentPage - 1);
+    }
+});
+
+document.getElementById('nextBtn').addEventListener('click', () => {
+    const totalPages = Math.ceil(allFiles.length / filesPerPage);
+    if (currentPage < totalPages) {
+        loadFiles(currentPage + 1);
+    }
+});
 
 function showMessage(text, type) {
     message.textContent = text;
