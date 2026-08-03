@@ -16,7 +16,7 @@ fileInput.addEventListener('change', (e) => {
     const files = e.target.files;
     if (files) {
         if (files.length == 1) {
-            fileName.textContent = `📄 Selected: ${file.name}`;
+            fileName.textContent = `📄 Selected: ${files[0].name}`;
             fileName.style.display = 'block';
             uploadBtn.disabled = false;
         } else {
