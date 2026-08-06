@@ -9,6 +9,7 @@ const progressFill = document.getElementById('progressFill');
 const filesPerPage = 5;
 let currentPage = 1;
 let allFiles = [];
+let selectedFiles = new Set();
 
 // Show selected file name
 fileInput.addEventListener('change', (e) => {
@@ -107,35 +108,71 @@ async function loadFiles(page = 1) {
         if (files.length === 0) {
             filesList.innerHTML = '<li class="empty-message">No files uploaded yet</li>';
             document.getElementById('pagination').style.display = 'none';
+            document.getElementById('deleteSelectedContainer').style.display = 'none';
         } else {
+            // Add select all checkbox header
+            const headerLi = document.createElement('li');
+            headerLi.className = 'file-header';
+            headerLi.innerHTML = `
+                <div class="select-wrapper">
+                    <input type="checkbox" id="selectAllCheckbox" class="select-all-checkbox">
+                    <label for="selectAllCheckbox">Select All</label>
+                </div>
+            `;
+            filesList.appendChild(headerLi);
+
+            // Add individual file items
             paginatedFiles.forEach(file => {
                 const li = document.createElement('li');
                 li.className = 'file-item';
                 li.innerHTML = `
-                    <a href="/download/${file}" download>${file}</a>
-                    <button class="delete-btn">Delete</button>
+                    <div class="file-checkbox-wrapper">
+                        <input type="checkbox" class="file-checkbox" data-filename="${file}">
+                    </div>
+                    <div class="file-item-content">
+                        <a href="/download/${file}" download>${file}</a>
+                    </div>
+                    <button class="delete-btn" data-filename="${file}">Delete</button>
                 `;
                 filesList.appendChild(li);
 
+                const checkbox = li.querySelector('.file-checkbox');
                 const deleteBtn = li.querySelector('.delete-btn');
+
+                // Individual file checkbox
+                checkbox.addEventListener('change', () => {
+                    if (checkbox.checked) {
+                        selectedFiles.add(file);
+                    } else {
+                        selectedFiles.delete(file);
+                    }
+                    updateDeleteButton();
+                });
+
+                // Individual delete button
                 deleteBtn.addEventListener('click', async () => {
                     if (confirm(`Are you sure you want to delete "${file}"?`)) {
-                        try {
-                            const deleteResponse = await fetch(`/delete/${file}`, {
-                                method: 'DELETE'
-                            });
-                            
-                            if (deleteResponse.ok) {
-                                showMessage(`✓ "${file}" deleted successfully!`, 'success');
-                                loadFiles(1); // Reset to page 1
-                            } else {
-                                showMessage('✗ Delete failed. Try again.', 'error');
-                            }
-                        } catch (err) {
-                            showMessage('✗ Error deleting file: ' + err.message, 'error');
-                        }
+                        await deleteFile(file);
                     }
                 });
+            });
+
+            // Handle select all checkbox
+            const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+            selectAllCheckbox.addEventListener('change', () => {
+                const checkboxes = document.querySelectorAll('.file-checkbox');
+                if (selectAllCheckbox.checked) {
+                    checkboxes.forEach(cb => {
+                        cb.checked = true;
+                        selectedFiles.add(cb.dataset.filename);
+                    });
+                } else {
+                    checkboxes.forEach(cb => {
+                        cb.checked = false;
+                        selectedFiles.delete(cb.dataset.filename);
+                    });
+                }
+                updateDeleteButton();
             });
 
             // Show pagination controls if more than one page
@@ -152,11 +189,86 @@ async function loadFiles(page = 1) {
                 paginationDiv.style.display = 'none';
             }
         }
+        updateDeleteButton();
     } catch (err) {
         console.error('Error loading files:', err);
     }
 }
 
+// Update delete button visibility and state
+function updateDeleteButton() {
+    const deleteSelectedBtn = document.getElementById('deleteSelectedBtn');
+    const deleteSelectedContainer = document.getElementById('deleteSelectedContainer');
+    
+    if (selectedFiles.size > 0) {
+        deleteSelectedContainer.style.display = 'block';
+        deleteSelectedBtn.textContent = `🗑️ Delete Selected (${selectedFiles.size})`;
+    } else {
+        deleteSelectedContainer.style.display = 'none';
+    }
+}
+
+// Delete single file
+async function deleteFile(filename) {
+    try {
+        const deleteResponse = await fetch(`/delete/${filename}`, {
+            method: 'DELETE'
+        });
+        
+        if (deleteResponse.ok) {
+            showMessage(`✓ "${filename}" deleted successfully!`, 'success');
+            selectedFiles.delete(filename);
+            loadFiles(1);
+        } else {
+            showMessage('✗ Delete failed. Try again.', 'error');
+        }
+    } catch (err) {
+        showMessage('✗ Error deleting file: ' + err.message, 'error');
+    }
+}
+
+// Delete multiple selected files
+async function deleteSelectedFiles() {
+    if (selectedFiles.size === 0) return;
+
+    const count = selectedFiles.size;
+    if (!confirm(`Are you sure you want to delete ${count} file(s)?`)) return;
+
+    try {
+        const filesToDelete = Array.from(selectedFiles);
+        let deletedCount = 0;
+        let failedCount = 0;
+
+        for (const filename of filesToDelete) {
+            try {
+                const deleteResponse = await fetch(`/delete/${filename}`, {
+                    method: 'DELETE'
+                });
+                
+                if (deleteResponse.ok) {
+                    deletedCount++;
+                } else {
+                    failedCount++;
+                }
+            } catch (err) {
+                failedCount++;
+            }
+        }
+
+        if (failedCount === 0) {
+            showMessage(`✓ Successfully deleted ${deletedCount} file(s)!`, 'success');
+        } else {
+            showMessage(`✓ Deleted ${deletedCount}, but ${failedCount} failed.`, 'error');
+        }
+
+        selectedFiles.clear();
+        loadFiles(1);
+    } catch (err) {
+        showMessage('✗ Error deleting files: ' + err.message, 'error');
+    }
+}
+
+// Event listeners for pagination
 document.getElementById('prevBtn').addEventListener('click', () => {
     if (currentPage > 1) {
         loadFiles(currentPage - 1);
@@ -170,11 +282,14 @@ document.getElementById('nextBtn').addEventListener('click', () => {
     }
 });
 
+// Event listener for delete selected button
+document.getElementById('deleteSelectedBtn').addEventListener('click', deleteSelectedFiles);
+
 function showMessage(text, type) {
     message.textContent = text;
     message.className = 'message ' + type;
     setTimeout(() => {
-    message.className = 'message';
+        message.className = 'message';
     }, 3000);
 }
 
