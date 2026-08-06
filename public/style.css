@@ -221,3 +221,47 @@ h1 {
   outline: 2px solid #ff4757;
   outline-offset: 2px;
 }
+
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.pagination-btn {
+  padding: 8px 16px;
+  background-color: #edf2f7;
+  color: #2d3748;
+  border: 1px solid #cbd5e0;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.pagination-btn:hover:not(:disabled) {
+  background-color: #e2e8f0;
+  border-color: #a0aec0;
+}
+
+.pagination-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.page-info {
+  font-size: 14px;
+  color: #4a5568;
+  font-weight: 600;
+  min-width: 80px;
+  text-align: center;
+}
+
+#pageInfo {
+  color: #667eea;
+}
