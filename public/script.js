@@ -197,14 +197,16 @@ async function loadFiles(page = 1) {
 
 // Update delete button visibility and state
 function updateDeleteButton() {
+    const downloadSelectedBtn = document.getElementById('downloadSelectedBtn');
     const deleteSelectedBtn = document.getElementById('deleteSelectedBtn');
-    const deleteSelectedContainer = document.getElementById('deleteSelectedContainer');
+    const selectedActionsContainer = document.getElementById('selectedActionsContainer');
     
     if (selectedFiles.size > 0) {
-        deleteSelectedContainer.style.display = 'block';
+        selectedActionsContainer.style.display = 'flex';
+        downloadSelectedBtn.textContent = `⬇️ Download Selected (${selectedFiles.size})`;
         deleteSelectedBtn.textContent = `🗑️ Delete Selected (${selectedFiles.size})`;
     } else {
-        deleteSelectedContainer.style.display = 'none';
+        selectedActionsContainer.style.display = 'none';
     }
 }
 
@@ -268,6 +270,28 @@ async function deleteSelectedFiles() {
     }
 }
 
+// Download multiple selected files
+async function downloadSelectedFiles() {
+    if (selectedFiles.size === 0) return;
+
+    const filesToDownload = Array.from(selectedFiles);
+    
+    // Download files one by one
+    filesToDownload.forEach((filename, index) => {
+        setTimeout(() => {
+            const link = document.createElement('a');
+            link.href = `/download/${filename}`;
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }, index * 500); // Stagger downloads by 500ms to avoid browser blocking
+    });
+
+    showMessage(`✓ Downloading ${filesToDownload.length} file(s)...`, 'success');
+}
+
+
 // Event listeners for pagination
 document.getElementById('prevBtn').addEventListener('click', () => {
     if (currentPage > 1) {
@@ -282,6 +306,8 @@ document.getElementById('nextBtn').addEventListener('click', () => {
     }
 });
 
+// Event listener for download selected button
+document.getElementById('downloadSelectedBtn').addEventListener('click', downloadSelectedFiles);
 // Event listener for delete selected button
 document.getElementById('deleteSelectedBtn').addEventListener('click', deleteSelectedFiles);
 
