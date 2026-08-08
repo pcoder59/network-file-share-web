@@ -127,7 +127,8 @@ async function loadFiles(page = 1) {
                 li.className = 'file-item';
                 li.innerHTML = `
                     <div class="file-checkbox-wrapper">
-                        <input type="checkbox" class="file-checkbox" data-filename="${file}">
+                        <input type="checkbox" class="file-checkbox" data-filename="${file}" 
+                            ${selectedFiles.has(file) ? 'checked' : ''}>
                     </div>
                     <div class="file-item-content">
                         <a href="/download/${file}" download>${file}</a>
