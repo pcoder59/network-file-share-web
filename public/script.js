@@ -292,6 +292,11 @@ async function downloadSelectedFiles() {
     showMessage(`✓ Downloading ${filesToDownload.length} file(s)...`, 'success');
 }
 
+async function clearSelectedFiles() {
+    selectedFiles.clear();
+    loadFiles(currentPage);
+}
+
 
 // Event listeners for pagination
 document.getElementById('prevBtn').addEventListener('click', () => {
@@ -311,6 +316,8 @@ document.getElementById('nextBtn').addEventListener('click', () => {
 document.getElementById('downloadSelectedBtn').addEventListener('click', downloadSelectedFiles);
 // Event listener for delete selected button
 document.getElementById('deleteSelectedBtn').addEventListener('click', deleteSelectedFiles);
+
+document.getElementById('clearSelectionBtn').addEventListener('click', clearSelectedFiles);
 
 function showMessage(text, type) {
     message.textContent = text;
