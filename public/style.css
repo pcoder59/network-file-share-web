@@ -313,7 +313,6 @@ h1 {
 }
 
 .delete-selected-btn {
-  width: 100%;
   padding: 12px 20px;
   background-color: #f56565;
   color: white;
@@ -346,6 +345,7 @@ h1 {
 }
 
 .download-selected-btn {
+    width: 100%;
     padding: 10px 20px;
     background-color: #4CAF50;
     color: white;
@@ -373,4 +373,33 @@ h1 {
 
 .delete-selected-btn:hover {
     background-color: #da190b;
+}
+
+.clear-selection-btn {
+  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #555;
+  background-color: #f0f0f0;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.clear-selection-btn:hover {
+  background-color: #e8e8e8;
+  border-color: #bbb;
+  color: #333;
+}
+
+.clear-selection-btn:active {
+  background-color: #ddd;
+  border-color: #999;
+  transform: scale(0.98);
+}
+
+.clear-selection-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
