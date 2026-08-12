@@ -319,6 +319,28 @@ document.getElementById('deleteSelectedBtn').addEventListener('click', deleteSel
 
 document.getElementById('clearSelectionBtn').addEventListener('click', clearSelectedFiles);
 
+// Event listener for go to page button
+document.getElementById('goToPageBtn').addEventListener('click', () => {
+    const pageInput = document.getElementById('pageInput');
+    const pageNum = parseInt(pageInput.value);
+    const totalPages = Math.ceil(allFiles.length / filesPerPage);
+
+    if (!pageNum || pageNum < 1 || pageNum > totalPages) {
+        showMessage(`✗ Please enter a page number between 1 and ${totalPages}`, 'error');
+        return;
+    }
+
+    loadFiles(pageNum);
+    pageInput.value = ''; // Clear input after navigation
+});
+
+// Allow Enter key to submit page number
+document.getElementById('pageInput').addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+        document.getElementById('goToPageBtn').click();
+    }
+});
+
 function showMessage(text, type) {
     message.textContent = text;
     message.className = 'message ' + type;
