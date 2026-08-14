@@ -11,17 +11,33 @@ let currentPage = 1;
 let allFiles = [];
 let selectedFiles = new Set();
 
+// Format bytes to human-readable format
+function formatFileSize(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    
+    return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
+}
+
 // Show selected file name
 fileInput.addEventListener('change', (e) => {
     fileName.textContent = '';
     const files = e.target.files;
     if (files) {
         if (files.length == 1) {
-            fileName.textContent = `📄 Selected: ${files[0].name}`;
+            const size = formatFileSize(files[0].size);
+            fileName.textContent = `📄 ${files[0].name} (${size})`;
             fileName.style.display = 'block';
             uploadBtn.disabled = false;
         } else {
-            fileName.textContent = `📄 Multiple Files Selected`;
+            let totalSize = 0;
+            for (let i = 0; i < files.length; i++) {
+                totalSize += files[i].size;
+            }
+            fileName.textContent = `📄 ${files.length} Files Selected (${formatFileSize(totalSize)})`;
             fileName.style.display = 'block';
             uploadBtn.disabled = false;
         }
@@ -55,7 +71,8 @@ uploadBtn.addEventListener('click', async () => {
 
             xhr.addEventListener('load', () => {
                 if (xhr.status === 200) {
-                    var message = file.name + 'File uploaded successfully! ✓';
+                    const fileSize = formatFileSize(file.size);
+                    var message = `✓ ${file.name} (${fileSize}) uploaded successfully!`;
                     showMessage(message, 'success');
                     fileInput.value = '';
                     fileName.style.display = 'none';
@@ -69,9 +86,8 @@ uploadBtn.addEventListener('click', async () => {
             });
 
             xhr.addEventListener('error', () => {
-                var message = file.name + 'Upload failed. Try again. ✗';
+                var message = `✗ ${file.name} upload failed. Try again.`;
                 showMessage(message, 'error');
-                showMessage('✗ Upload failed. Try again.', 'error');
                 uploadBtn.disabled = false;
                 progress.style.display = 'none';
             });
@@ -79,7 +95,7 @@ uploadBtn.addEventListener('click', async () => {
             xhr.open('POST', '/upload');
             xhr.send(formData);
         } catch (err) {
-            showMessage(file.name + ' ✗ Error: ' + err.message, 'error');
+            showMessage(`${file.name} ✗ Error: ${err.message}`, 'error');
             if (i == files.length - 1) {
                 showMessage('File Transfer Completed! ✓')
                 uploadBtn.disabled = false;
@@ -108,7 +124,7 @@ async function loadFiles(page = 1) {
         if (files.length === 0) {
             filesList.innerHTML = '<li class="empty-message">No files uploaded yet</li>';
             document.getElementById('pagination').style.display = 'none';
-            document.getElementById('deleteSelectedContainer').style.display = 'none';
+            document.getElementById('selectedActionsContainer').style.display = 'none';
         } else {
             // Add select all checkbox header
             const headerLi = document.createElement('li');
@@ -125,15 +141,22 @@ async function loadFiles(page = 1) {
             paginatedFiles.forEach(file => {
                 const li = document.createElement('li');
                 li.className = 'file-item';
+                
+                // Handle both string filenames and file objects with size
+                const fileName = typeof file === 'string' ? file : file.name;
+                const fileSize = typeof file === 'string' ? 0 : (file.size || 0);
+                const fileSizeText = formatFileSize(fileSize);
+                
                 li.innerHTML = `
                     <div class="file-checkbox-wrapper">
-                        <input type="checkbox" class="file-checkbox" data-filename="${file}" 
-                            ${selectedFiles.has(file) ? 'checked' : ''}>
+                        <input type="checkbox" class="file-checkbox" data-filename="${fileName}" 
+                            ${selectedFiles.has(fileName) ? 'checked' : ''}>
                     </div>
                     <div class="file-item-content">
-                        <a href="/download/${file}" download>${file}</a>
+                        <a href="/download/${fileName}" download>${fileName}</a>
+                        <span class="file-size">${fileSizeText}</span>
                     </div>
-                    <button class="delete-btn" data-filename="${file}">Delete</button>
+                    <button class="delete-btn" data-filename="${fileName}">Delete</button>
                 `;
                 filesList.appendChild(li);
 
@@ -143,17 +166,17 @@ async function loadFiles(page = 1) {
                 // Individual file checkbox
                 checkbox.addEventListener('change', () => {
                     if (checkbox.checked) {
-                        selectedFiles.add(file);
+                        selectedFiles.add(fileName);
                     } else {
-                        selectedFiles.delete(file);
+                        selectedFiles.delete(fileName);
                     }
                     updateDeleteButton();
                 });
 
                 // Individual delete button
                 deleteBtn.addEventListener('click', async () => {
-                    if (confirm(`Are you sure you want to delete "${file}"?`)) {
-                        await deleteFile(file);
+                    if (confirm(`Are you sure you want to delete "${fileName}"?`)) {
+                        await deleteFile(fileName);
                     }
                 });
             });

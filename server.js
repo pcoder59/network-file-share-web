@@ -41,7 +41,28 @@ app.post('/upload', upload.single('file'), (req, res) => {
 app.get('/files', (req, res) => {
   fs.readdir('uploads', (err, files) => {
     if (err) return res.status(500).send('Error reading files');
-    res.json(files);
+    // Get file stats for each file
+    const filePromises = files.map(filename => {
+      return new Promise((resolve) => {
+        fs.stat(path.join('uploads', filename), (err, stats) => {
+          if (err) {
+            resolve({ name: filename, size: 0 });
+          } else {
+            resolve({ 
+              name: filename, 
+              size: stats.size,
+              modified: stats.mtime
+            });
+          }
+        });
+      });
+    });
+
+    Promise.all(filePromises).then(filesWithStats => {
+      // Sort by modified date (newest first)
+      filesWithStats.sort((a, b) => new Date(b.modified) - new Date(a.modified));
+      res.json(filesWithStats);
+    });
   });
 });
 
