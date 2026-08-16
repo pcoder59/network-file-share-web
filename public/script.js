@@ -57,6 +57,16 @@ fileInput.addEventListener('change', (e) => {
 uploadBtn.addEventListener('click', async () => {
     const files = fileInput.files;
     if (!files) return;
+
+    const filesToCheck = Array.from(fileInput.files);
+    const existingFileNames = allFiles.map(f => f.name);
+    const duplicates = filesToCheck.filter(file => existingFileNames.includes(file.name));
+
+    if (duplicates.length > 0) {
+        alert(`These files already exist:\n${duplicates.map(f => f.name).join('\n')}\n\nPlease rename or delete them first.`);
+        return;
+    }
+
     for (var i = 0; i < files.length; i++) {
         const file = fileInput.files[i];
         if (!file) return;
