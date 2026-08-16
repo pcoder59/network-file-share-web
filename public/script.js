@@ -5,11 +5,17 @@ const filesList = document.getElementById('filesList');
 const message = document.getElementById('message');
 const progress = document.getElementById('progress');
 const progressFill = document.getElementById('progressFill');
+const searchInput = document.getElementById('searchInput');
+const clearSearchBtn = document.getElementById('clearSearchBtn');
+const searchResults = document.getElementById('searchResults');
 
 const filesPerPage = 5;
 let currentPage = 1;
 let allFiles = [];
+let filteredFiles = [];
 let selectedFiles = new Set();
+let isSearchActive = false;
+let searchQuery = '';
 
 // Format bytes to human-readable format
 function formatFileSize(bytes) {
@@ -80,6 +86,7 @@ uploadBtn.addEventListener('click', async () => {
                     progressFill.style.width = '0%';
                     setTimeout(() => {
                         progress.style.display = 'none';
+                        clearSearch();
                         loadFiles();
                     }, 1000);
                 }
@@ -105,6 +112,49 @@ uploadBtn.addEventListener('click', async () => {
     }
 });
 
+// Search files
+function searchFiles(query) {
+    searchQuery = query.toLowerCase().trim();
+    
+    if (searchQuery === '') {
+        isSearchActive = false;
+        filteredFiles = [];
+        clearSearchBtn.style.display = 'none';
+        searchResults.textContent = '';
+        loadFiles(1);
+        return;
+    }
+
+    isSearchActive = true;
+    filteredFiles = allFiles.filter(file => {
+        const fileName = typeof file === 'string' ? file : file.name;
+        return fileName.toLowerCase().includes(searchQuery);
+    });
+
+    clearSearchBtn.style.display = 'inline-block';
+    
+    if (filteredFiles.length === 0) {
+        searchResults.textContent = `No files found matching "${searchQuery}"`;
+    } else {
+        searchResults.textContent = `Found ${filteredFiles.length} file(s)`;
+    }
+
+    currentPage = 1;
+    displayFiles();
+}
+
+// Clear search
+function clearSearch() {
+    searchInput.value = '';
+    searchQuery = '';
+    isSearchActive = false;
+    filteredFiles = [];
+    clearSearchBtn.style.display = 'none';
+    searchResults.textContent = '';
+    selectedFiles.clear();
+    loadFiles(1);
+}
+
 // Load and display files
 async function loadFiles(page = 1) {
     try {
@@ -112,111 +162,116 @@ async function loadFiles(page = 1) {
         const files = await response.json();
         allFiles = files;
         currentPage = page;
+        displayFiles();
+    } catch (err) {
+        console.error('Error loading files:', err);
+    }
+}
 
-        // Calculate pagination
-        const totalPages = Math.ceil(files.length / filesPerPage);
-        const startIndex = (page - 1) * filesPerPage;
-        const endIndex = startIndex + filesPerPage;
-        const paginatedFiles = files.slice(startIndex, endIndex);
+// Display files with pagination
+function displayFiles(page = currentPage) {
+    currentPage = page;
+    const filesToDisplay = isSearchActive ? filteredFiles : allFiles;
+    
+    const totalPages = Math.ceil(filesToDisplay.length / filesPerPage);
+    const startIndex = (page - 1) * filesPerPage;
+    const endIndex = startIndex + filesPerPage;
+    const paginatedFiles = filesToDisplay.slice(startIndex, endIndex);
 
-        // Display files
-        filesList.innerHTML = '';
-        if (files.length === 0) {
-            filesList.innerHTML = '<li class="empty-message">No files uploaded yet</li>';
-            document.getElementById('pagination').style.display = 'none';
-            document.getElementById('selectedActionsContainer').style.display = 'none';
-        } else {
-            // Add select all checkbox header
-            const headerLi = document.createElement('li');
-            headerLi.className = 'file-header';
-            headerLi.innerHTML = `
-                <div class="select-wrapper">
-                    <input type="checkbox" id="selectAllCheckbox" class="select-all-checkbox">
-                    <label for="selectAllCheckbox">Select All</label>
+    // Display files
+    filesList.innerHTML = '';
+    if (filesToDisplay.length === 0) {
+        const emptyMsg = isSearchActive 
+            ? `No files match "${searchQuery}"` 
+            : 'No files uploaded yet';
+        filesList.innerHTML = `<li class="empty-message">${emptyMsg}</li>`;
+        document.getElementById('pagination').style.display = 'none';
+        document.getElementById('selectedActionsContainer').style.display = 'none';
+    } else {
+        // Add select all checkbox header
+        const headerLi = document.createElement('li');
+        headerLi.className = 'file-header';
+        headerLi.innerHTML = `
+            <div class="select-wrapper">
+                <input type="checkbox" id="selectAllCheckbox" class="select-all-checkbox">
+                <label for="selectAllCheckbox">Select All</label>
+            </div>
+        `;
+        filesList.appendChild(headerLi);
+
+        // Add individual file items
+        paginatedFiles.forEach(file => {
+            const li = document.createElement('li');
+            li.className = 'file-item';
+            
+            const fileName = typeof file === 'string' ? file : file.name;
+            const fileSize = typeof file === 'string' ? 0 : (file.size || 0);
+            const fileSizeText = formatFileSize(fileSize);
+            
+            li.innerHTML = `
+                <div class="file-checkbox-wrapper">
+                    <input type="checkbox" class="file-checkbox" data-filename="${fileName}" 
+                        ${selectedFiles.has(fileName) ? 'checked' : ''}>
                 </div>
+                <div class="file-item-content">
+                    <a href="/download/${fileName}" download>${fileName}</a>
+                    <span class="file-size">${fileSizeText}</span>
+                </div>
+                <button class="delete-btn" data-filename="${fileName}">Delete</button>
             `;
-            filesList.appendChild(headerLi);
+            filesList.appendChild(li);
 
-            // Add individual file items
-            paginatedFiles.forEach(file => {
-                const li = document.createElement('li');
-                li.className = 'file-item';
-                
-                // Handle both string filenames and file objects with size
-                const fileName = typeof file === 'string' ? file : file.name;
-                const fileSize = typeof file === 'string' ? 0 : (file.size || 0);
-                const fileSizeText = formatFileSize(fileSize);
-                
-                li.innerHTML = `
-                    <div class="file-checkbox-wrapper">
-                        <input type="checkbox" class="file-checkbox" data-filename="${fileName}" 
-                            ${selectedFiles.has(fileName) ? 'checked' : ''}>
-                    </div>
-                    <div class="file-item-content">
-                        <a href="/download/${fileName}" download>${fileName}</a>
-                        <span class="file-size">${fileSizeText}</span>
-                    </div>
-                    <button class="delete-btn" data-filename="${fileName}">Delete</button>
-                `;
-                filesList.appendChild(li);
+            const checkbox = li.querySelector('.file-checkbox');
+            const deleteBtn = li.querySelector('.delete-btn');
 
-                const checkbox = li.querySelector('.file-checkbox');
-                const deleteBtn = li.querySelector('.delete-btn');
-
-                // Individual file checkbox
-                checkbox.addEventListener('change', () => {
-                    if (checkbox.checked) {
-                        selectedFiles.add(fileName);
-                    } else {
-                        selectedFiles.delete(fileName);
-                    }
-                    updateDeleteButton();
-                });
-
-                // Individual delete button
-                deleteBtn.addEventListener('click', async () => {
-                    if (confirm(`Are you sure you want to delete "${fileName}"?`)) {
-                        await deleteFile(fileName);
-                    }
-                });
-            });
-
-            // Handle select all checkbox
-            const selectAllCheckbox = document.getElementById('selectAllCheckbox');
-            selectAllCheckbox.addEventListener('change', () => {
-                const checkboxes = document.querySelectorAll('.file-checkbox');
-                if (selectAllCheckbox.checked) {
-                    checkboxes.forEach(cb => {
-                        cb.checked = true;
-                        selectedFiles.add(cb.dataset.filename);
-                    });
+            checkbox.addEventListener('change', () => {
+                if (checkbox.checked) {
+                    selectedFiles.add(fileName);
                 } else {
-                    checkboxes.forEach(cb => {
-                        cb.checked = false;
-                        selectedFiles.delete(cb.dataset.filename);
-                    });
+                    selectedFiles.delete(fileName);
                 }
                 updateDeleteButton();
             });
 
-            // Show pagination controls if more than one page
-            const paginationDiv = document.getElementById('pagination');
-            if (totalPages > 1) {
-                paginationDiv.style.display = 'flex';
-                document.getElementById('pageInfo').textContent = 
-                    `Page ${page} of ${totalPages}`;
-                
-                // Update button states
-                document.getElementById('prevBtn').disabled = page === 1;
-                document.getElementById('nextBtn').disabled = page === totalPages;
+            deleteBtn.addEventListener('click', async () => {
+                if (confirm(`Are you sure you want to delete "${fileName}"?`)) {
+                    await deleteFile(fileName);
+                }
+            });
+        });
+
+        // Handle select all checkbox
+        const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+        selectAllCheckbox.addEventListener('change', () => {
+            const checkboxes = document.querySelectorAll('.file-checkbox');
+            if (selectAllCheckbox.checked) {
+                checkboxes.forEach(cb => {
+                    cb.checked = true;
+                    selectedFiles.add(cb.dataset.filename);
+                });
             } else {
-                paginationDiv.style.display = 'none';
+                checkboxes.forEach(cb => {
+                    cb.checked = false;
+                    selectedFiles.delete(cb.dataset.filename);
+                });
             }
+            updateDeleteButton();
+        });
+
+        // Show pagination controls if more than one page
+        const paginationDiv = document.getElementById('pagination');
+        if (totalPages > 1) {
+            paginationDiv.style.display = 'flex';
+            document.getElementById('pageInfo').textContent = 
+                `Page ${page} of ${totalPages}`;
+            
+            document.getElementById('prevBtn').disabled = page === 1;
+            document.getElementById('nextBtn').disabled = page === totalPages;
+        } else {
+            paginationDiv.style.display = 'none';
         }
-        updateDeleteButton();
-    } catch (err) {
-        console.error('Error loading files:', err);
     }
+    updateDeleteButton();
 }
 
 // Update delete button visibility and state
@@ -244,6 +299,7 @@ async function deleteFile(filename) {
         if (deleteResponse.ok) {
             showMessage(`✓ "${filename}" deleted successfully!`, 'success');
             selectedFiles.delete(filename);
+            clearSearch();
             loadFiles(1);
         } else {
             showMessage('✗ Delete failed. Try again.', 'error');
@@ -288,6 +344,7 @@ async function deleteSelectedFiles() {
         }
 
         selectedFiles.clear();
+        clearSearch();
         loadFiles(1);
     } catch (err) {
         showMessage('✗ Error deleting files: ' + err.message, 'error');
@@ -300,7 +357,6 @@ async function downloadSelectedFiles() {
 
     const filesToDownload = Array.from(selectedFiles);
     
-    // Download files one by one
     filesToDownload.forEach((filename, index) => {
         setTimeout(() => {
             const link = document.createElement('a');
@@ -309,7 +365,7 @@ async function downloadSelectedFiles() {
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
-        }, index * 500); // Stagger downloads by 500ms to avoid browser blocking
+        }, index * 500);
     });
 
     showMessage(`✓ Downloading ${filesToDownload.length} file(s)...`, 'success');
@@ -317,23 +373,31 @@ async function downloadSelectedFiles() {
 
 async function clearSelectedFiles() {
     selectedFiles.clear();
-    loadFiles(currentPage);
+    displayFiles();
 }
-
 
 // Event listeners for pagination
 document.getElementById('prevBtn').addEventListener('click', () => {
+    const filesToDisplay = isSearchActive ? filteredFiles : allFiles;
     if (currentPage > 1) {
-        loadFiles(currentPage - 1);
+        displayFiles(currentPage - 1);
     }
 });
 
 document.getElementById('nextBtn').addEventListener('click', () => {
-    const totalPages = Math.ceil(allFiles.length / filesPerPage);
+    const filesToDisplay = isSearchActive ? filteredFiles : allFiles;
+    const totalPages = Math.ceil(filesToDisplay.length / filesPerPage);
     if (currentPage < totalPages) {
-        loadFiles(currentPage + 1);
+        displayFiles(currentPage + 1);
     }
 });
+
+// Search event listeners
+searchInput.addEventListener('input', (e) => {
+    searchFiles(e.target.value);
+});
+
+clearSearchBtn.addEventListener('click', clearSearch);
 
 // Event listener for download selected button
 document.getElementById('downloadSelectedBtn').addEventListener('click', downloadSelectedFiles);
@@ -346,14 +410,15 @@ document.getElementById('clearSelectionBtn').addEventListener('click', clearSele
 document.getElementById('goToPageBtn').addEventListener('click', () => {
     const pageInput = document.getElementById('pageInput');
     const pageNum = parseInt(pageInput.value);
-    const totalPages = Math.ceil(allFiles.length / filesPerPage);
+    const filesToDisplay = isSearchActive ? filteredFiles : allFiles;
+    const totalPages = Math.ceil(filesToDisplay.length / filesPerPage);
 
     if (!pageNum || pageNum < 1 || pageNum > totalPages) {
         showMessage(`✗ Please enter a page number between 1 and ${totalPages}`, 'error');
         return;
     }
 
-    loadFiles(pageNum);
+    displayFiles(pageNum);
     pageInput.value = ''; // Clear input after navigation
 });
 
@@ -374,3 +439,4 @@ function showMessage(text, type) {
 
 // Load files on page load
 loadFiles();
+
