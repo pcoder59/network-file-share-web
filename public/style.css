@@ -439,6 +439,7 @@ h1 {
   gap: 10px;
   margin-bottom: 20px;
   align-items: center;
+  flex-wrap: wrap;
 }
 
 .search-input {
@@ -448,6 +449,7 @@ h1 {
   border-radius: 8px;
   font-size: 16px;
   transition: border-color 0.3s;
+  min-width: 200px;
 }
 
 .search-input:focus {
@@ -457,13 +459,15 @@ h1 {
 }
 
 .clear-search-btn {
-  padding: 10px 15px;
+  padding: 12px 15px;
   background: #f8f9fa;
   border: 1px solid #dee2e6;
   border-radius: 6px;
   cursor: pointer;
   font-size: 16px;
   transition: all 0.2s;
+  min-height: 44px;
+  flex-shrink: 0;
 }
 
 .clear-search-btn:hover {
@@ -473,8 +477,9 @@ h1 {
 .search-results {
   font-size: 14px;
   color: #666;
-  margin-top: 5px;
+  margin-top: 8px;
   min-height: 20px;
+  width: 100%;
 }
 
 /* Mobile optimizations */
@@ -577,6 +582,30 @@ h1 {
     .file-size {
         font-size: 11px;
     }
+
+    .search-section {
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .search-input {
+        width: 100%;
+        padding: 12px 12px;
+        font-size: 16px;
+        min-width: unset;
+    }
+
+    .clear-search-btn {
+        width: 100%;
+        padding: 12px 15px;
+        font-size: 15px;
+    }
+
+    .search-results {
+        width: 100%;
+        font-size: 13px;
+        margin-top: 6px;
+    }
 }
 
 @media (max-width: 360px) {
@@ -615,5 +644,15 @@ h1 {
         padding: 4px 8px;
         font-size: 11px;
         min-height: 32px;
+    }
+
+    .search-input {
+        font-size: 16px;
+        padding: 11px 10px;
+    }
+
+    .clear-search-btn {
+        padding: 11px 12px;
+        font-size: 14px;
     }
 }
