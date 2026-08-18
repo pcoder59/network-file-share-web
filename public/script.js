@@ -17,6 +17,17 @@ let selectedFiles = new Set();
 let isSearchActive = false;
 let searchQuery = '';
 
+function showLoader() {
+  document.getElementById('filesLoader').style.display = 'flex';
+  document.getElementById('filesList').style.display = 'none';
+}
+
+// Hide loader when done
+function hideLoader() {
+  document.getElementById('filesLoader').style.display = 'none';
+  document.getElementById('filesList').style.display = 'block';
+}
+
 // Format bytes to human-readable format
 function formatFileSize(bytes) {
     if (bytes === 0) return '0 Bytes';
@@ -167,6 +178,7 @@ function clearSearch() {
 
 // Load and display files
 async function loadFiles(page = 1) {
+    showLoader();
     try {
         const response = await fetch('/files');
         const files = await response.json();
@@ -282,6 +294,7 @@ function displayFiles(page = currentPage) {
         }
     }
     updateDeleteButton();
+    hideLoader();
 }
 
 // Update delete button visibility and state
