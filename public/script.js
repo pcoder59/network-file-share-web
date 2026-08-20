@@ -174,7 +174,6 @@ function clearSearch() {
     filteredFiles = [];
     clearSearchBtn.style.display = 'none';
     searchResults.textContent = '';
-    selectedFiles.clear();
     loadFiles(1);
 }
 
