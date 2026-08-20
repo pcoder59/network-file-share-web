@@ -17,6 +17,8 @@ let selectedFiles = new Set();
 let isSearchActive = false;
 let searchQuery = '';
 
+let fileDataMap = new Map();
+
 function showLoader() {
   document.getElementById('filesLoader').style.display = 'flex';
   document.getElementById('filesList').style.display = 'none';
@@ -230,9 +232,13 @@ function displayFiles(page = currentPage) {
             const fileSize = typeof file === 'string' ? 0 : (file.size || 0);
             const fileSizeText = formatFileSize(fileSize);
             
+            // Store file size in map for later calculations
+            fileDataMap.set(fileName, fileSize);
+            
             li.innerHTML = `
                 <div class="file-checkbox-wrapper">
                     <input type="checkbox" class="file-checkbox" data-filename="${fileName}" 
+                        data-size="${fileSize}"
                         ${selectedFiles.has(fileName) ? 'checked' : ''}>
                 </div>
                 <div class="file-item-content">
@@ -302,13 +308,35 @@ function updateDeleteButton() {
     const downloadSelectedBtn = document.getElementById('downloadSelectedBtn');
     const deleteSelectedBtn = document.getElementById('deleteSelectedBtn');
     const selectedActionsContainer = document.getElementById('selectedActionsContainer');
+    const selectedCountSpan = document.getElementById('selectedCount');
+    const selectedSizeSpan = document.getElementById('selectedSize');
     
     if (selectedFiles.size > 0) {
+        // Calculate total size of selected files
+        let totalSize = 0;
+        selectedFiles.forEach(filename => {
+            totalSize += fileDataMap.get(filename) || 0;
+        });
+
         selectedActionsContainer.style.display = 'flex';
         downloadSelectedBtn.textContent = `⬇️ Download Selected (${selectedFiles.size})`;
         deleteSelectedBtn.textContent = `🗑️ Delete Selected (${selectedFiles.size})`;
+        
+        // Update selected info display
+        if (selectedCountSpan) {
+            selectedCountSpan.textContent = `${selectedFiles.size} file${selectedFiles.size !== 1 ? 's' : ''} selected`;
+        }
+        if (selectedSizeSpan) {
+            selectedSizeSpan.textContent = formatFileSize(totalSize);
+        }
     } else {
         selectedActionsContainer.style.display = 'none';
+        if (selectedCountSpan) {
+            selectedCountSpan.textContent = '0 files selected';
+        }
+        if (selectedSizeSpan) {
+            selectedSizeSpan.textContent = '0 B';
+        }
     }
 }
 
