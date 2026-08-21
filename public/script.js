@@ -19,6 +19,45 @@ let searchQuery = '';
 
 let fileDataMap = new Map();
 
+async function deleteAllFiles() {
+    if (allFiles.length === 0) {
+        showMessage('✗ No files to delete', 'error');
+        return;
+    }
+    const count = allFiles.length;
+    if (!confirm(`Are you sure you want to delete ALL ${count} file(s)? This cannot be undone.`)) return;
+    try {
+        let deletedCount = 0;
+        let failedCount = 0;
+        for (const file of allFiles) {
+            try {
+                const fileName = typeof file === 'string' ? file : file.name;
+                const deleteResponse = await fetch(`/delete/${fileName}`, {
+                    method: 'DELETE'
+                });
+                if (deleteResponse.ok) {
+                    deletedCount++;
+                } else {
+                    failedCount++;
+                }
+            } catch (err) {
+                failedCount++;
+            }
+        }
+        if (failedCount === 0) {
+            showMessage(`✓ Successfully deleted all ${deletedCount} file(s)!`, 'success');
+        } else {
+            showMessage(`✓ Deleted ${deletedCount}, but ${failedCount} failed.`, 'error');
+        }
+        selectedFiles.clear();
+        fileDataMap.clear();
+        clearSearch();
+        loadFiles(1);
+    } catch (err) {
+        showMessage('✗ Error deleting files: ' + err.message, 'error');
+    }
+}
+
 function showLoader() {
   document.getElementById('filesLoader').style.display = 'flex';
   document.getElementById('filesList').style.display = 'none';
@@ -40,6 +79,8 @@ function formatFileSize(bytes) {
     
     return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
 }
+
+document.getElementById('deleteAllBtn').addEventListener('click', deleteAllFiles);
 
 // Show selected file name
 fileInput.addEventListener('change', (e) => {
